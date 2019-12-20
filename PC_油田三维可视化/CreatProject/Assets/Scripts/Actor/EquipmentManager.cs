@@ -6,65 +6,53 @@ namespace GYFZ.Actor.Equipment
 {
     public class EquipmentManager : MonoBehaviour
     {
-        List<Equipment> equipmentList = new List<Equipment>();
-        List<Equipment> currentEquipmentList = new List<Equipment>();
+        List<Equipment> equipmentList = new List<Equipment>();//所属所有装备
+        List<Equipment> currentEquipmentList = new List<Equipment>();//当前穿在身上的装备
+        Dictionary<string, GameObject> dicEquipObj = new Dictionary<string, GameObject>();//装备物品字典
+
+        public void Start()
+        {
+            InitEquipmentList();//初始化
+
+        }
+
+        /// <summary>
+        /// 传递进来装备ID
+        /// </summary>
+        /// <param name="eqID"></param>
         public void Equipmenting(int eqID)//, bool on)
         {
             Equipment eq = ListHelper.Find(equipmentList, a => a.category == eqID);
-            string ChildName = eq.name;
-            if (eq._equipmentState == Equipment.EquipmentState.Unuseful)
+            if (eq != null)
             {
-                currentEquipmentList.Add(eq);
-            }
-            else if (eq._equipmentState == Equipment.EquipmentState.Useful)
-            {
-                currentEquipmentList.Remove(eq);
-            }
-            RefreshModelEq(eq._equipmentState);
-        }
-
-        #region new equipmenting
-        public void RefreshModelEq(Equipment.EquipmentState equipment)
-        {
-            //定body
-            GameObject currentBody = this.gameObject;
-
-            //同步当前护具表
-            for (int i = 0; i < currentBody.transform.childCount; i++)
-            {
-                GameObject obj = currentBody.transform.GetChild(i).gameObject;
-
-                //SingleBody的暂且进不来这里，防一下滤下名字
-                if (obj.name != "Bip01" && obj.name != "pifu" && obj.name != "Plane_mark" && obj.name != "Canvas" && obj.name != "LightRing")
+                //如果装备是锁着的直接跳出
+                if (eq._equipmentState == Equipment.EquipmentState.Lock) return;
+                if (eq._equipmentState == Equipment.EquipmentState.Unuseful)
                 {
-                    //---------------------------------SupportTools.Highlight(obj, false);
-                    if (equipment == Equipment.EquipmentState.Unuseful)
-                    {
-                        obj.SetActive(false);
-                    }
+                    currentEquipmentList.Add(eq);
+                    eq._equipmentState = Equipment.EquipmentState.Useful;
+                }
+                else if (eq._equipmentState == Equipment.EquipmentState.Useful)
+                {
+                    currentEquipmentList.Remove(eq);
+                    eq._equipmentState = Equipment.EquipmentState.Unuseful;
+                }
 
-                    for (int j = 0; j < currentEquipmentList.Count; j++)
-                    {
-                        if (obj.name == currentEquipmentList[j].name)
-                        {
-                            obj.SetActive(true);
-
-                            if (wh && obj.name == lightName)//高亮一下
-                            {
-                                StopCoroutine(BlingObject(obj));
-                                StartCoroutine(BlingObject(obj));
-                            }
-                        }
-
-                        if (ListHelper.Find(currentEquipmentList, a => a.gearID == 200004 || a.gearID == 200005) != null)//背包 面具 坑 后来背包包含了面具
-                        {
-                            currentBody.transform.Find("MianJu").gameObject.SetActive(true);
-                        }
-                    }
+                //刷新装备
+                if (!dicEquipObj.ContainsKey(eq.name)) return;
+                GameObject obj = dicEquipObj[eq.name];
+                if (eq._equipmentState == Equipment.EquipmentState.Unuseful)
+                    obj.SetActive(false);
+                else
+                {
+                    obj.SetActive(true);
+                    //物品出现要伴随高亮
+                    StopCoroutine(BlingObject(obj));
+                    StartCoroutine(BlingObject(obj));
                 }
             }
+
         }
-        #endregion
 
         /// <summary>
         /// 新上护具亮一下
@@ -78,19 +66,127 @@ namespace GYFZ.Actor.Equipment
             SupportTools.Highlight(o, false);
         }
 
-
-        public virtual void SetEquipmentOn(bool wh)
+        /// <summary>
+        /// 装备初始化
+        /// </summary>
+        void InitEquipmentList()
         {
-            isEquipped = wh;
+            GameObject currentBody = this.gameObject;
+
+            //先把物品字典 给存了
+            for (int i = 0; i < currentBody.transform.childCount; i++)
+            {
+                GameObject obj = currentBody.transform.GetChild(i).gameObject;
+
+                //SingleBody的暂且进不来这里，防一下滤下名字.防止别的
+                if (obj.name != "Bip01" && obj.name != "pifu" && obj.name != "Plane_mark" && obj.name != "Canvas" && obj.name != "LightRing")
+                {
+                    dicEquipObj.Add(obj.name, obj);
+                    //在吧装备信息列表初始化了
+                    Equipment equipment01 = new Equipment
+                    {
+                        category = CreatEquipmentID(obj.name),
+                        name = obj.name,
+                        description = CreatEquipmentDescription(obj.name),
+                        icon = CreatEquipmentIcon(obj.name),
+                        owner = currentBody
+                    };
+                }
+            }
+
         }
 
-        public virtual void ConfirmEquipment()
+
+        int CreatEquipmentID(string equipmentName)
         {
-            isEquipped = true;
+            int currentID = 0;
+            switch (equipmentName)
+            {
+                case "Box002":
+                    currentID = 10001;
+                    break;
+                case "Sphere03":
+                    currentID = 10002;
+                    break;
+                case "对象001":
+                    currentID = 10003;
+                    break;
+                case "对象01":
+                    currentID = 10004;
+                    break;
+                case "对象004":
+                    currentID = 10005;
+                    break;
+                case "对象005":
+                    currentID = 10006;
+                    break;
+                default:
+                    Debug.LogError("装备ID初始化出错了，请及时排查！");
+                    break;
+            }
+            return currentID;
+        }
 
-            //JudgeEquipment();
+        string CreatEquipmentDescription(string equipmentName)
+        {
+            string currentDes = "";
+            switch (equipmentName)
+            {
+                case "Box002":
+                    currentDes = "";
+                    break;
+                case "Sphere03":
+                    currentDes = "";
+                    break;
+                case "对象001":
+                    currentDes = "";
+                    break;
+                case "对象01":
+                    currentDes = "";
+                    break;
+                case "对象004":
+                    currentDes = "";
+                    break;
+                case "对象005":
+                    currentDes = "";
+                    break;
+                default:
+                    Debug.LogError("装备介绍初始化出错了，请及时排查！");
 
-            DoMyJob();
+                    break;
+            }
+            return currentDes;
+        }
+
+        Sprite CreatEquipmentIcon(string equipmentName)
+        {
+            string currentIconName = "";
+            switch (equipmentName)
+            {
+                case "Box002":
+                    currentIconName = "";
+                    break;
+                case "Sphere03":
+                    currentIconName = "";
+                    break;
+                case "对象001":
+                    currentIconName = "";
+                    break;
+                case "对象01":
+                    currentIconName = "";
+                    break;
+                case "对象004":
+                    currentIconName = "";
+                    break;
+                case "对象005":
+                    currentIconName = "";
+                    break;
+                default:
+                    Debug.LogError("装备Icon初始化出错了，请及时排查！");
+                    break;
+            }
+            Sprite sprite = Resources.Load<Sprite>("Sprites/" + currentIconName);
+            return sprite;
         }
     }
 }
